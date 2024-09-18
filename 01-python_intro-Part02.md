@@ -16,10 +16,25 @@ numbers = [1, 2, 3, 4, 5]
 mixed = [1, "hello", 3.14, True]
 ```
 
-### Accessing List Elements
+#### Accessing List Elements
 
 List elements are indexed starting from 0. You can access individual
 elements using square brackets:
+
+```python
+numbers = [10, 1, 3, 4, -5]
+num1 = numbers[-1] # stores the last element of the list (-5) in num1
+num2 = numbers[0] # stores the first element of the list (10) in num2
+num3 = numbers[3] # stores '4' in num3
+
+print("num1:", num1)
+print("num2:", num2)
+print("num3:", num3)
+```
+
+#### 1. Adding Elements
+
+Use `append()` to add an element to the end of the list
 
 ```python
 fruits = ["apple", "banana"]
