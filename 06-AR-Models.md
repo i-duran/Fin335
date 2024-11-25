@@ -93,7 +93,7 @@ df['GE_diff'].plot(title='Differenced GE Stock Price', figsize=(10, 6))
 plt.show()
 ```
 
-![](assets/AR-Models_files/cell-6-output-1.png)
+![](assets/AR-Models_files/figure-commonmark/cell-6-output-1.png)
 
 As we can see, the series seems to move randomly around a constant mean,
 which it is indicative of stationarity.
