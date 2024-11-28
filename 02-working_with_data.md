@@ -6,7 +6,8 @@ basic manipulations, including converting certain columns to their
 logarithmic values (using the **Numpy library**) and creating new
 variables based on calculations from existing ones.
 
-**Note**: Pandas and Numpy are two of the main libraries when working
+> [!important]
+> **Note**: Pandas and Numpy are two of the main libraries when working
 with data. They are widely known and we will be using them all the time
 in this class.
 
@@ -125,7 +126,10 @@ dictionary `dict` (see explanation at the end [Understanding Python
 Dictionaries](#understanding-python-dictionaries)).
 
 Then we use `data['SANDP']` to calculate the `log` and store that in a
-new column or variable, namely `data['log_SANDP']`. **Note** that
+new column or variable, namely `data['log_SANDP']`.
+
+> [!note]
+> **Note** that
 `log_SANDP` is just an arbitrary name (you can give whatever name you
 want, just avoid using spaces when naming new variables).
 

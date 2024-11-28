@@ -212,7 +212,8 @@ Explanation:
 This example showcases how nested lists can be used to represent tabular
 data and how to perform common operations on such data structures.
 
-**Note**: In practice, however, we will be using later on (in the next
+> [!note]
+> **Note**: In practice, however, we will be using later on (in the next
 tutorial) more advanced data structures like **Pandas DataFrames** and
 **Numpy Arrays** for handling tabular data in Python. **Pandas** and
 **Numpy** are what we call Python **libraries**. These libraries make it

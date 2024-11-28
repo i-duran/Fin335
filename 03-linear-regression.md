@@ -18,7 +18,9 @@ $$R_a - R_f = \beta_0 + \beta_1(R_m - R_f)$$
   the return of the market, which can be obtained from the S&P index
   found in the column ‘SANDP’ (: the SANDP column is the index value,
   not the return).
-- **Note**: the variable ‘USTB3M’ is already in percentage points (that is, it
+
+> [!note]
+> **Note**: the variable ‘USTB3M’ is already in percentage points (that is, it
   has been multiplied by 100 already). Therefore, for consistency
   purposes, it is recommended that you also multiple $R_a$ and $R_m$
   when calculating the returns of the asset and the market,
