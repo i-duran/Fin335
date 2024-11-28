@@ -60,7 +60,8 @@ print(f'p-value: {result_adf[1]}')
     ADF Statistic: -1.8355727211649129
     p-value: 0.3629492469787401
 
-If the p-value is greater than 0.05, the series is not stationary, and
+> [!note]
+> If the p-value is greater than 0.05, the series is not stationary, and
 we may need to difference the series and perform the test again.
 
 Based on the result of this test, we can conclude that the series is not
@@ -121,7 +122,8 @@ be significant, and perhaps the 8th as well.
 After determining the order, we can estimate the AR model using the
 AutoReg function from statsmodels.
 
-Based on the previous PACF, it seems like lags 4, 7, and maybe 8, are
+> [!note]
+> Based on the previous PACF, it seems like lags 4, 7, and maybe 8, are
 significant.
 
 Let’s first add all lags up to the 8th to test for significance:
@@ -250,11 +252,12 @@ print(acorr_ljungbox(residuals, lags=[10], return_df=False))
          lb_stat  lb_pvalue
     10  6.378516   0.782523
 
-Based on the plots above, we can say that there is no autocorrelation in
+> [!important]
+> Based on the plots above, we can say that there is no autocorrelation in
 the residuals, therefore, our AR model successfully control for
 autocorrelation.
-
-Additionally, based on the Ljung-Box test, we also conclude that there
+>
+>Additionally, based on the Ljung-Box test, we also conclude that there
 is no autocorrelation anymore.
 
 ## Step 6: Forecasting

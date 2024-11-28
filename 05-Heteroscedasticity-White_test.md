@@ -318,5 +318,6 @@ As we can see, the `p-value` of the White test is larger than 0.1:
 This means that we **fail to reject the null hypothesis of the White
 test, and so we consider the residuals to be homoscedastic**.
 
-**Conclusion**: we have managed to detect and correct for
+> [!important]
+> **Conclusion**: we have managed to detect and correct for
 heteroscedasticity!
