@@ -313,5 +313,6 @@ print(f'p-value: {p_value}')
     Hausman Test Statistic: 336.86682319132865
     p-value: 0.0
 
-Based on the results of the test, **we choose the Fixed effects model**, due
+> [!note]
+> Based on the results of the test, **we choose the Fixed effects model**, due
 to the presence of correlation between individual effects and the regressors.
