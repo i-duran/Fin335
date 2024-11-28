@@ -20,7 +20,7 @@ $$R_a - R_f = \beta_0 + \beta_1(R_m - R_f)$$
   not the return).
 
 > [!note]
-> **Note**: the variable ‘USTB3M’ is already in percentage points (that is, it
+> The variable ‘USTB3M’ is already in percentage points (that is, it
   has been multiplied by 100 already). Therefore, for consistency
   purposes, it is recommended that you also multiple $R_a$ and $R_m$
   when calculating the returns of the asset and the market,
