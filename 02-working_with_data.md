@@ -192,8 +192,7 @@ print(columns)
 
 # Exclude the first column (Date)
 for column in columns[1:]:  # This excludes the first column
-    if pd.api.types.is_numeric_dtype(data[column]): # optional check
-        means[column] = data[column].mean()
+    means[column] = data[column].mean()
 
 # Print the means for all numeric columns
 for column, mean_value in means.items():
