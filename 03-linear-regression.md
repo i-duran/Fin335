@@ -110,22 +110,8 @@ df.dropna() # drop missing observations
     75%      1.725000    4.773869    4.180123    2.930465    2.065107  
     max      5.160000  127.376426  127.216426   10.589550   10.569550  
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-&#10;    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-&#10;    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-
-|        | SANDP       | FORD  | GE        | MICROSOFT | ORACLE    | USTB3M | FORD_r     | FORD_r_Rf  | SANDP_r   | SANDP_r_Rf |
+|**Date**| SANDP       | FORD  | GE        | MICROSOFT | ORACLE    | USTB3M | FORD_r     | FORD_r_Rf  | SANDP_r   | SANDP_r_Rf |
 |--------|-------------|-------|-----------|-----------|-----------|--------|------------|------------|-----------|------------|
-| Date   |             |       |           |           |           |        |            |            |           |            |
 | Feb-02 | 1106.729980 | 14.88 | 38.500000 | 29.170000 | 16.620001 | 1.76   | -2.745098  | -4.505098  | -2.076621 | -3.836621  |
 | Mar-02 | 1147.390015 | 16.49 | 37.400002 | 30.155001 | 12.800000 | 1.83   | 10.819892  | 8.989892   | 3.673889  | 1.843889   |
 | Apr-02 | 1076.920044 | 16.00 | 31.549999 | 26.129999 | 10.040000 | 1.75   | -2.971498  | -4.721498  | -6.141763 | -7.891763  |
@@ -137,9 +123,6 @@ df.dropna() # drop missing observations
 | Dec-17 | 2683.729980 | 12.49 | 17.450001 | 85.540001 | 47.279999 | 1.34   | -0.239617  | -1.579617  | 1.460432  | 0.120432   |
 | Jan-18 | 2816.449951 | 10.97 | 16.170000 | 95.010002 | 51.590000 | 1.43   | -12.169736 | -13.599736 | 4.945355  | 3.515355   |
 | Feb-18 | 2715.219971 | 10.61 | 14.110000 | 93.769997 | 50.669998 | 1.59   | -3.281677  | -4.871677  | -3.594240 | -5.184240  |
-
-<p>193 rows × 10 columns</p>
-</div>
 
 Now we can go ahead and use the `statsmodels (smf)` library to estimate
 the linear equation based on the CAPM specification:
