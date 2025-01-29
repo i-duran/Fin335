@@ -32,14 +32,14 @@ $$R_a - R_f = \beta_0 + \beta_1(R_m - R_f)$$
 import pandas as pd
 import statsmodels.formula.api as smf
 
-df = pd.read_csv("./data/capm.csv", index_col=0)
+data = pd.read_csv("./data/capm.csv", index_col=0)
 ```
 
 ## Step 2: Summary Statistics Of The Data
 
 ``` python
-print(df.describe())
-print(df.head())
+print(data.describe())
+print(data.head())
 ```
 
                  SANDP        FORD          GE   MICROSOFT      ORACLE      USTB3M
@@ -65,14 +65,14 @@ First we need to prepare the data and calculate the required variables.
 We will do this for **FORD** only at this point:
 
 ``` python
-df["FORD_r"] = df["FORD"].pct_change() * 100
-df["FORD_r_Rf"] = df["FORD_r"] - df["USTB3M"]
-df["SANDP_r"] = df["SANDP"].pct_change() * 100
-df["SANDP_r_Rf"] = df["SANDP_r"] - df["USTB3M"]
+data["FORD_r"] = data["FORD"].pct_change() * 100
+data["FORD_r_Rf"] = data["FORD_r"] - data["USTB3M"]
+data["SANDP_r"] = data["SANDP"].pct_change() * 100
+data["SANDP_r_Rf"] = data["SANDP_r"] - data["USTB3M"]
 
-print(df.head())
-print(df.describe())
-df.dropna() # drop missing observations
+print(data.head())
+print(data.describe())
+data = data.dropna() # drop missing observations
 ```
 
                   SANDP   FORD         GE  MICROSOFT     ORACLE  USTB3M  \
@@ -130,7 +130,7 @@ the linear equation based on the CAPM specification:
 ``` python
 print("\n\n--- Simple Regression ---")
 
-model = smf.ols("FORD_r_Rf ~ SANDP_r_Rf", data=df)
+model = smf.ols("FORD_r_Rf ~ SANDP_r_Rf", data=data)
 results = model.fit()
 print(results.summary())
 ```
