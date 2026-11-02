@@ -45,7 +45,7 @@ plt.show()
 
 ![](assets/AR-Models_files/figure-commonmark/cell-3-output-1.png)
 
-### Step 3: Test for Stationarity
+## Step 3: Test for Stationarity
 
 Before estimating an AR model, we need to ensure that the time series is
 stationary. We use the Augmented Dickey-Fuller (ADF) test for this
@@ -57,23 +57,35 @@ print(f'ADF Statistic: {result_adf[0]}')
 print(f'p-value: {result_adf[1]}')
 ```
 
-    ADF Statistic: -1.8355727211649129
-    p-value: 0.3629492469787401
+    ADF Statistic: -1.8355727211649135
+    p-value: 0.36294924697873976
 
 > [!note]
-> If the p-value is greater than 0.05, the series is not stationary, and
-we may need to difference the series and perform the test again.
+> The null hypothesis of the ADF test is that the series has a unit root
+> (it is not stationary). If the p-value is greater than 0.05, we cannot
+> reject it: we treat the series as non-stationary, difference it and
+> test again.
 
-Based on the result of this test, we can conclude that the series is not
-stationary so we need to first difference the series and test again:
+Here the p-value is 0.36, so we treat the GE price as non-stationary,
+difference the series and test again.
+
+> [!important]
+> We use GE’s monthly return in percent, `pct_change() * 100`, which is a
+> relative (percentage) first difference: calculating the percentage
+> change of a series also implies differencing the series. We keep the
+> column name `GE_diff` for it. This monthly return is not annualised and
+> no risk-free rate is subtracted, because here we model GE’s own
+> returns, not excess returns.
 
 ``` python
+# Alternative: the first difference in dollars
 # df['GE_diff'] = df['GE'].diff()
+
+# GE's monthly return in percent (a percentage first difference)
 df["GE_diff"] = df["GE"].pct_change() * 100
 
-
-# Drop the NaN value created by differencing
-df = df.dropna()
+# Drop the NaN value created by differencing and renumber the rows from 0
+df = df.dropna().reset_index(drop=True)
 
 result_adf = adfuller(df['GE_diff'], autolag='AIC')
 print(f'ADF Statistic: {result_adf[0]}')
@@ -83,9 +95,10 @@ print(f'p-value: {result_adf[1]}')
     ADF Statistic: -4.051148422228882
     p-value: 0.001165136499938297
 
-Testing again for stationary, we reject the null hypothesis of
-non-stationarity. Therefore, the series is stationary in first
-difference.
+> [!note]
+> Testing again (p-value 0.001 < 0.05), we reject the null hypothesis of
+> a unit root. Therefore, GE’s returns (the differenced series) are
+> stationary.
 
 Let’s visualize the new differenced series:
 
@@ -97,7 +110,7 @@ plt.show()
 ![](assets/AR-Models_files/figure-commonmark/cell-6-output-1.png)
 
 As we can see, the series seems to move randomly around a constant mean,
-which it is indicative of stationarity.
+which is indicative of stationarity.
 
 ## Step 4: Determine the Order of the AR Model
 
@@ -113,9 +126,10 @@ plt.show()
 
 ![](assets/AR-Models_files/figure-commonmark/cell-7-output-1.png)
 
-The number of lags that crosses the confidence interval is an indication
-of the order of the AR model. In this case, the 4th and 7th lag seem to
-be significant, and perhaps the 8th as well.
+> [!note]
+> The lags whose bars cross the confidence band (the shaded area) are an
+> indication of the order of the AR model. In this case, the 4th and 7th
+> lags seem to be significant, and perhaps the 8th as well.
 
 ## Step 5: Estimate the AR Model
 
@@ -124,13 +138,11 @@ AutoReg function from statsmodels.
 
 > [!note]
 > Based on the previous PACF, it seems like lags 4, 7, and maybe 8, are
-significant.
+> significant.
 
 Let’s first add all lags up to the 8th to test for significance:
 
 ``` python
-# Assuming the order determined from PACF plot is p
-p = 8  # Example order, replace with actual determined order
 model = AutoReg(df['GE_diff'], lags=8)
 model_fitted = model.fit()
 
@@ -139,7 +151,7 @@ print(model_fitted.summary())
 
                                 AutoReg Model Results                             
     ==============================================================================
-    Dep. Variable:                GE_diff   No. Observations:                  193
+    Dep. Variable:                GE_diff   No. Observations:                  185
     Model:                     AutoReg(8)   Log Likelihood                -620.415
     Method:               Conditional MLE   S.D. of innovations              6.922
     Date:                Sun, 12 May 2024   AIC                           1260.830
@@ -173,11 +185,56 @@ print(model_fitted.summary())
     -----------------------------------------------------------------------------
 
 
-Based on the previous results, let’s estimate again by adding just the
-significant lags (which is congruent with the PACF plot above):
+At the 5% level, lags 4, 7 and 8 are significant (p-values 0.005, 0.004
+and 0.047). At the 10% level, lag 1 is significant as well (p-value
+0.068). Let’s estimate again with only the lags that are significant at
+5%:
 
 ``` python
-# Assuming the order determined from PACF plot is p
+model = AutoReg(df['GE_diff'], lags=[4, 7, 8])
+model_fitted = model.fit()
+
+print(model_fitted.summary())
+```
+
+                                AutoReg Model Results                             
+    ==============================================================================
+    Dep. Variable:                GE_diff   No. Observations:                  185
+    Model:              Restr. AutoReg(8)   Log Likelihood                -622.239
+    Method:               Conditional MLE   S.D. of innovations              6.990
+    Date:                Mon, 02 Nov 2026   AIC                           1254.478
+    Time:                        08:38:35   BIC                           1270.580
+    Sample:                             8   HQIC                          1261.004
+                                      193                                         
+    ==============================================================================
+                     coef    std err          z      P>|z|      [0.025      0.975]
+    ------------------------------------------------------------------------------
+    const         -0.0287      0.514     -0.056      0.955      -1.036       0.979
+    GE_diff.L4     0.1998      0.071      2.831      0.005       0.061       0.338
+    GE_diff.L7    -0.2071      0.069     -2.993      0.003      -0.343      -0.071
+    GE_diff.L8     0.1121      0.071      1.583      0.113      -0.027       0.251
+                                        Roots                                    
+    =============================================================================
+                      Real          Imaginary           Modulus         Frequency
+    -----------------------------------------------------------------------------
+    AR.1           -1.1115           -0.0000j            1.1115           -0.5000
+    AR.2           -0.8093           -0.9459j            1.2448           -0.3626
+    AR.3           -0.8093           +0.9459j            1.2448            0.3626
+    AR.4            0.1249           -1.1593j            1.1660           -0.2329
+    AR.5            0.1249           +1.1593j            1.1660            0.2329
+    AR.6            1.3131           -0.7174j            1.4963           -0.0796
+    AR.7            1.3131           +0.7174j            1.4963            0.0796
+    AR.8            1.7024           -0.0000j            1.7024           -0.0000
+    -----------------------------------------------------------------------------
+
+> [!important]
+> Once the insignificant lags are dropped, lag 8 is no longer significant
+> (p-value 0.113 > 0.05), so we drop it too and keep only lags 4 and 7
+> (which is congruent with the PACF plot above). A p-value can change when
+> other lags are removed, so drop lags step by step and estimate again
+> each time.
+
+``` python
 model = AutoReg(df['GE_diff'], lags=[4, 7])
 model_fitted = model.fit()
 
@@ -186,7 +243,7 @@ print(model_fitted.summary())
 
                                 AutoReg Model Results                             
     ==============================================================================
-    Dep. Variable:                GE_diff   No. Observations:                  193
+    Dep. Variable:                GE_diff   No. Observations:                  186
     Model:              Restr. AutoReg(7)   Log Likelihood                -629.293
     Method:               Conditional MLE   S.D. of innovations              7.130
     Date:                Sun, 12 May 2024   AIC                           1266.586
@@ -212,11 +269,9 @@ print(model_fitted.summary())
     AR.7           -0.8038           +1.0867j            1.3517            0.3514
     -----------------------------------------------------------------------------
 
-<br>
-
-**Analyze the resuts using p-values for the significance test** and decide which lags are significant.
-
-<br>
+> [!tip]
+> **Your turn:** analyze the results using the p-values of the
+> significance tests and decide which lags are significant.
 
 Let’s analyze the residuals from this last estimation:
 
@@ -235,12 +290,14 @@ plt.show()
 plot_pacf(residuals, lags=40, title='PACF for Residuals')
 plt.show()
 
-# Run the Ljung-Box Test: A significant result (p < 0.05 typically) suggests there is autocorrelation in the residuals
-# which is undesirable. That is, the null hypothesis is no autocorrelation.
+# Run the Ljung-Box Test. The null hypothesis is no autocorrelation in the residuals.
+# A significant result (p < 0.05) suggests there is autocorrelation left, which is undesirable.
+# model_df=2 is the number of AR coefficients we estimated (lags 4 and 7);
+# it reduces the degrees of freedom of the test.
 
 from statsmodels.stats.diagnostic import acorr_ljungbox
 
-print(acorr_ljungbox(residuals, lags=[10], return_df=False))
+print(acorr_ljungbox(residuals, lags=[10], model_df=2))
 ```
 
 ![](assets/AR-Models_files/figure-commonmark/cell-10-output-1.png)
@@ -250,15 +307,17 @@ print(acorr_ljungbox(residuals, lags=[10], return_df=False))
 ![](assets/AR-Models_files/figure-commonmark/cell-10-output-3.png)
 
          lb_stat  lb_pvalue
-    10  6.378516   0.782523
+    10  6.378516   0.604912
 
 > [!important]
-> Based on the plots above, we can say that there is no autocorrelation in
-the residuals, therefore, our AR model successfully control for
-autocorrelation.
+> In the ACF and PACF plots of the residuals, no lag is outside the
+> confidence band (ignore lag 0, which is always 1; lag 1 is close to the
+> edge but inside), so the AR model seems to capture the autocorrelation
+> of the returns.
 >
->Additionally, based on the Ljung-Box test, we also conclude that there
-is no autocorrelation anymore.
+> The Ljung-Box test agrees: it does not reject the null hypothesis of no
+> autocorrelation (p-value 0.60 > 0.05), so we find no statistically
+> significant evidence of autocorrelation in the residuals up to lag 10.
 
 ## Step 6: Forecasting
 
@@ -278,8 +337,13 @@ print(forecast)
     197    0.517009
     dtype: float64
 
+> [!note]
+> These are forecasts of GE’s monthly returns in percent, not of its
+> price. For example, the model forecasts a return of −1.37% for the
+> first month after the data ends.
 
-We can also compared in a plot the observed vs the fitted or forecasted
+
+We can also compare in a plot the observed vs the fitted or forecasted
 values:
 
 ``` python
