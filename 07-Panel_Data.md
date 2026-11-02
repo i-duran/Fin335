@@ -34,7 +34,7 @@ import pandas as pd
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import statsmodels.formula.api as smf
-from linearmodels.panel import PooledOLS, PanelOLS, RandomEffects, BetweenOLS, compare
+from linearmodels.panel import PooledOLS, PanelOLS, RandomEffects, compare
 ```
 
 Let’s import and take a look at the data:
@@ -97,9 +97,6 @@ $$
 > - **Random effects** assumes $a_i$ is uncorrelated with the regressors
 >   and subtracts only part of each route’s average. If that assumption
 >   holds, it is more efficient than fixed effects.
-> - The **between estimator**, which we add only for comparison, uses
->   just the route averages, so $a_i$ stays in its error term, as in
->   pooled OLS.
 
 ## Estimate Pooled OLS
 
@@ -182,6 +179,44 @@ From here on we use the model in logs.
 
 ## Estimate fixed effects model
 
+Fixed effects is also called the **within estimator**.
+
+> [!important]
+> **Why we must eliminate $a_i$.** We cannot observe $a_i$, so we cannot
+> add it to the regression as a variable: it stays in the error term,
+> every year. If it is correlated with the regressors, OLS credits them
+> with part of its effect (omitted variable bias). For example, on a
+> route where it is hard for a new airline to enter, the biggest carrier
+> has a high market share (`bmktshr`), and fares are high because of
+> the entry barriers, which we do not observe. Pooled OLS then gives
+> `bmktshr` part of the effect of the entry barriers. Fixed effects
+> avoids this by transforming the model so that $a_i$ disappears.
+
+**How fixed effects removes $a_i$.** First, average the model over the 4
+years of each route (a bar means the route’s average):
+
+$$
+\overline{lfare}_i = \beta_0 + \beta_1 ldist_{i} + \beta_2 ldistsq_{i} + \beta_3 \overline{lpassen}_i + \beta_4 \overline{bmktshr}_i + a_i + \bar u_i
+$$
+
+Then subtract this from the model, year by year:
+
+$$
+lfare_{it} - \overline{lfare}_i = \beta_3 (lpassen_{it} - \overline{lpassen}_i) + \beta_4 (bmktshr_{it} - \overline{bmktshr}_i) + (u_{it} - \bar u_i)
+$$
+
+$a_i$ is the same every year, so it cancels, and so do $\beta_0$,
+`ldist` and `ldistsq`. Fixed effects is OLS on these demeaned variables.
+It is called the **within** estimator because it uses only how each
+route moves around its own average over time, never the differences
+between routes.
+
+> [!note]
+> Subtracting the previous year instead of the average
+> ($lfare_{it} - lfare_{i,t-1}$) also removes $a_i$. That is a different
+> method, **first differences**. With only two years, it gives the same
+> estimates as fixed effects.
+
 In `linearmodels`, the fixed effects model is `PanelOLS` with
 `EntityEffects` in the formula (one effect $a_i$ for each route, the
 “entity”).
@@ -189,9 +224,9 @@ In `linearmodels`, the fixed effects model is `PanelOLS` with
 > [!important]
 > **Fixed effects cannot estimate the effect of a variable that does not
 > change over time.** `ldist` and `ldistsq` never change within a route
-> (the distance between two cities is always the same), so the route
-> effects absorb them. `drop_absorbed=True` drops those variables (with a
-> warning) instead of stopping with an error.
+> (the distance between two cities is always the same), so they cancel
+> with $a_i$: the route effects absorb them. `drop_absorbed=True` drops
+> those variables (with a warning) instead of stopping with an error.
 
 ``` python
 fixed_effects = PanelOLS.from_formula('lfare ~ 1 + ldist + ldistsq + lpassen + bmktshr + EntityEffects',
@@ -255,6 +290,26 @@ print(data.groupby(level='id')[['ldist', 'lpassen', 'bmktshr']].std().mean())
 > from $a_i$. `fe_results.estimated_effects` gives each route’s deviation
 > from that average (the deviations average zero).
 
+**The within estimator by hand.** Subtract each route’s average from
+every variable and run OLS on the result, without a constant. The
+coefficients are the same as with `PanelOLS`:
+
+``` python
+variables = ['lfare', 'lpassen', 'bmktshr']
+demeaned = data[variables] - data.groupby(level='id')[variables].transform('mean')
+within = smf.ols('lfare ~ 0 + lpassen + bmktshr', data=demeaned).fit()
+print(within.params.round(4))
+```
+
+    lpassen   -0.3163
+    bmktshr    0.0647
+    dtype: float64
+
+> [!note]
+> Use `PanelOLS` for the standard errors. OLS on the demeaned data does
+> not count the 1,149 route averages we subtracted, so its standard
+> errors are too small.
+
 ## Estimate random effects model
 
 ``` python
@@ -293,102 +348,44 @@ print(re_results)
     bmktshr        0.0999     0.0251     3.9818     0.0001      0.0507      0.1491
     ==============================================================================
 
-## Estimate the between estimator (for comparison)
-
-The between estimator takes the average of every variable over the 4
-years for each route, and runs one OLS regression on those 1,149 route
-averages. Since the route averages of `ldist` and `ldistsq` are not
-constant, it estimates them:
-
-``` python
-between = BetweenOLS.from_formula('lfare ~ 1 + ldist + ldistsq + lpassen + bmktshr', data=data)
-be_results = between.fit()
-print(be_results)
-```
-
-                             BetweenOLS Estimation Summary                          
-    ================================================================================
-    Dep. Variable:                  lfare   R-squared:                        0.4401
-    Estimator:                 BetweenOLS   R-squared (Between):              0.4401
-    No. Observations:                1149   R-squared (Within):               0.0943
-    Date:                Mon, Nov 02 2026   R-squared (Overall):              0.4222
-    Time:                        08:47:34   Log-likelihood                   -313.88
-    Cov. Estimator:            Unadjusted                                           
-                                            F-statistic:                      224.77
-    Entities:                        1149   P-value                           0.0000
-    Avg Obs:                       4.0000   Distribution:                  F(4,1144)
-    Min Obs:                       4.0000                                           
-    Max Obs:                       4.0000   F-statistic (robust):             224.77
-                                            P-value                           0.0000
-    Time periods:                       4   Distribution:                  F(4,1144)
-    Avg Obs:                       1149.0                                           
-    Min Obs:                       1149.0                                           
-    Max Obs:                       1149.0                                           
-
-                                 Parameter Estimates                              
-    ==============================================================================
-                Parameter  Std. Err.     T-stat    P-value    Lower CI    Upper CI
-    ------------------------------------------------------------------------------
-    Intercept      6.9388     0.8044     8.6258     0.0000      5.3605      8.5171
-    ldist         -0.9681     0.2432    -3.9802     0.0001     -1.4453     -0.4909
-    ldistsq        0.1069     0.0184     5.7995     0.0000      0.0708      0.1431
-    lpassen       -0.0676     0.0110    -6.1441     0.0000     -0.0892     -0.0460
-    bmktshr        0.3346     0.0607     5.5123     0.0000      0.2155      0.4536
-    ==============================================================================
-
-> [!warning]
-> The between estimator is **not** a way to rescue `ldist` and `ldistsq`
-> from fixed effects, and it is **not** the fixed effects model.
->
-> - It uses only the differences *across* routes, which is exactly where
->   the route effect $a_i$ is. $a_i$ stays in its error term.
-> - So it is unbiased only if $a_i$ is uncorrelated with **all** the
->   regressors: the same assumption as random effects. The Hausman test
->   below rejects that assumption, so the between estimator cannot be
->   trusted either, and its estimates of `ldist` and `ldistsq` cannot be
->   assumed unbiased.
-> - Fixed effects is the opposite: it uses only the changes *within*
->   each route over time.
-
-## Compare the four models
+## Compare the three models
 
 ``` python
 comparison = compare({'Pooled OLS': pooled_results,
-                      'Between': be_results,
                       'Fixed Effects': fe_results,
                       'Random Effects': re_results},
                      stars=True)
 print(comparison.summary)
 ```
 
-                                       Model Comparison                                   
-    ======================================================================================
-                                Pooled OLS        Between  Fixed Effects    Random Effects
-    --------------------------------------------------------------------------------------
-    Dep. Variable                    lfare          lfare          lfare             lfare
-    Estimator                    PooledOLS     BetweenOLS       PanelOLS     RandomEffects
-    No. Observations                  4596           1149           4596              4596
-    Cov. Est.                   Unadjusted     Unadjusted     Unadjusted        Unadjusted
-    R-squared                       0.4227         0.4401         0.2864            0.2851
-    R-Squared (Within)              0.1117         0.0943         0.2864            0.2619
-    R-Squared (Between)             0.4396         0.4401        -0.1484            0.3397
-    R-Squared (Overall)             0.4227         0.4222        -0.1260            0.3357
-    F-statistic                     840.30         224.77         691.32            457.62
-    P-value (F-stat)                0.0000         0.0000         0.0000            0.0000
-    =====================     ============   ============   ============   ===============
-    Intercept                    7.0392***      6.9388***      6.9592***         8.5440***
-                                  (16.819)       (8.6258)       (127.56)          (10.332)
-    ldist                       -0.9683***     -0.9681***                       -1.0638***
-                                 (-7.6515)      (-3.9802)                        (-4.2417)
-    ldistsq                      0.1065***      0.1069***                        0.1095***
-                                  (11.101)       (5.7995)                         (5.7785)
-    lpassen                     -0.0773***     -0.0676***     -0.3163***        -0.2236***
-                                 (-13.745)      (-6.1441)      (-36.979)         (-32.065)
-    bmktshr                      0.3028***      0.3346***       0.0647**         0.0999***
-                                  (10.150)       (5.5123)       (2.4448)          (3.9818)
-    ======================= ============== ============== ============== =================
-    Effects                                                       Entity                  
-    --------------------------------------------------------------------------------------
+                                Model Comparison                           
+    =======================================================================
+                                Pooled OLS  Fixed Effects    Random Effects
+    -----------------------------------------------------------------------
+    Dep. Variable                    lfare          lfare             lfare
+    Estimator                    PooledOLS       PanelOLS     RandomEffects
+    No. Observations                  4596           4596              4596
+    Cov. Est.                   Unadjusted     Unadjusted        Unadjusted
+    R-squared                       0.4227         0.2864            0.2851
+    R-Squared (Within)              0.1117         0.2864            0.2619
+    R-Squared (Between)             0.4396        -0.1484            0.3397
+    R-Squared (Overall)             0.4227        -0.1260            0.3357
+    F-statistic                     840.30         691.32            457.62
+    P-value (F-stat)                0.0000         0.0000            0.0000
+    =====================     ============   ============   ===============
+    Intercept                    7.0392***      6.9592***         8.5440***
+                                  (16.819)       (127.56)          (10.332)
+    ldist                       -0.9683***                       -1.0638***
+                                 (-7.6515)                        (-4.2417)
+    ldistsq                      0.1065***                        0.1095***
+                                  (11.101)                         (5.7785)
+    lpassen                     -0.0773***     -0.3163***        -0.2236***
+                                 (-13.745)      (-36.979)         (-32.065)
+    bmktshr                      0.3028***       0.0647**         0.0999***
+                                  (10.150)       (2.4448)          (3.9818)
+    ======================= ============== ============== =================
+    Effects                                        Entity                  
+    -----------------------------------------------------------------------
 
     T-stats reported in parentheses
 
@@ -414,7 +411,6 @@ def with_stars(results):
     return pd.Series(cells)
 
 coefficients = pd.DataFrame({'Pooled OLS': with_stars(pooled_results),
-                             'Between': with_stars(be_results),
                              'Fixed Effects': with_stars(fe_results),
                              'Random Effects': with_stars(re_results)})
 order = ['Intercept', 'ldist', 'ldistsq', 'lpassen', 'bmktshr']
@@ -422,12 +418,12 @@ coefficients = coefficients.loc[order].fillna('—')
 print(coefficients)
 ```
 
-               Pooled OLS     Between Fixed Effects Random Effects
-    Intercept   7.0392***   6.9388***     6.9592***      8.5440***
-    ldist      -0.9683***  -0.9681***             —     -1.0638***
-    ldistsq     0.1065***   0.1069***             —      0.1095***
-    lpassen    -0.0773***  -0.0676***    -0.3163***     -0.2236***
-    bmktshr     0.3028***   0.3346***      0.0647**      0.0999***
+               Pooled OLS Fixed Effects Random Effects
+    Intercept   7.0392***     6.9592***      8.5440***
+    ldist      -0.9683***             —     -1.0638***
+    ldistsq     0.1065***             —      0.1095***
+    lpassen    -0.0773***    -0.3163***     -0.2236***
+    bmktshr     0.3028***      0.0647**      0.0999***
 
 > [!note]
 > `***`, `**` and `*` mean that the coefficient is significant at the
@@ -437,23 +433,22 @@ print(coefficients)
 > [!important]
 > What the comparison tells us:
 >
-> - **Pooled OLS and between agree; fixed effects disagrees a lot.**
->   Pooled OLS and between compare different routes with each other, so
->   the route effects $a_i$ get mixed into their coefficients. Fixed
->   effects compares each route with itself, so $a_i$ cannot bias it. For
->   example, pooled OLS says that a 10-point increase in the biggest
->   carrier’s market share goes with a fare about 3.0% higher
+> - **Pooled OLS and fixed effects disagree a lot.** Pooled OLS also
+>   uses the differences across routes, so the route effects $a_i$ get
+>   mixed into its coefficients. Fixed effects compares each route with
+>   itself, so $a_i$ cannot bias it. For example, pooled OLS says that
+>   a 10-point increase in the biggest carrier’s market share goes with
+>   a fare about 3.0% higher
 >   ($0.3028 \times 0.10$), while fixed effects says only 0.6%
 >   ($0.0647 \times 0.10$). The effect of passengers is four times larger
 >   with fixed effects ($-0.316$ vs $-0.077$).
 > - **Random effects lies in between, closer to fixed effects.** Random
->   effects combines the between and the fixed effects (within)
->   estimators. Here it subtracts about 85% of each route’s average
+>   effects subtracts only part of each route’s average: about 85% here
 >   (`re_results.theta`), so it leans towards fixed effects; pooled OLS
 >   subtracts nothing and fixed effects subtracts all of it.
-> - **`ldist` and `ldistsq`** are similar in pooled OLS, between and
->   random effects, but all three need $a_i$ to be uncorrelated with the
->   regressors, so we cannot be sure they are unbiased.
+> - **`ldist` and `ldistsq`** are similar in pooled OLS and random
+>   effects, but both need $a_i$ to be uncorrelated with the regressors,
+>   so we cannot be sure they are unbiased.
 
 > [!note]
 > The fixed effects output also reports the **F-test for poolability**.
