@@ -356,7 +356,8 @@ print(be_results)
 comparison = compare({'Pooled OLS': pooled_results,
                       'Between': be_results,
                       'Fixed Effects': fe_results,
-                      'Random Effects': re_results})
+                      'Random Effects': re_results},
+                     stars=True)
 print(comparison.summary)
 ```
 
@@ -375,15 +376,15 @@ print(comparison.summary)
     F-statistic                     840.30         224.77         691.32            457.62
     P-value (F-stat)                0.0000         0.0000         0.0000            0.0000
     =====================     ============   ============   ============   ===============
-    Intercept                       7.0392         6.9388         6.9592            8.5440
+    Intercept                    7.0392***      6.9388***      6.9592***         8.5440***
                                   (16.819)       (8.6258)       (127.56)          (10.332)
-    ldist                          -0.9683        -0.9681                          -1.0638
+    ldist                       -0.9683***     -0.9681***                       -1.0638***
                                  (-7.6515)      (-3.9802)                        (-4.2417)
-    ldistsq                         0.1065         0.1069                           0.1095
+    ldistsq                      0.1065***      0.1069***                        0.1095***
                                   (11.101)       (5.7995)                         (5.7785)
-    lpassen                        -0.0773        -0.0676        -0.3163           -0.2236
+    lpassen                     -0.0773***     -0.0676***     -0.3163***        -0.2236***
                                  (-13.745)      (-6.1441)      (-36.979)         (-32.065)
-    bmktshr                         0.3028         0.3346         0.0647            0.0999
+    bmktshr                      0.3028***      0.3346***       0.0647**         0.0999***
                                   (10.150)       (5.5123)       (2.4448)          (3.9818)
     ======================= ============== ============== ============== =================
     Effects                                                       Entity                  
@@ -391,22 +392,47 @@ print(comparison.summary)
 
     T-stats reported in parentheses
 
-Or just the coefficients, side by side (`NaN` means “not estimated”):
+Or just the coefficients, side by side, each followed by its stars
+(`—` means “not estimated”):
 
 ``` python
-coefficients = pd.DataFrame({'Pooled OLS': pooled_results.params,
-                             'Between': be_results.params,
-                             'Fixed Effects': fe_results.params,
-                             'Random Effects': re_results.params})
-print(coefficients.round(4))
+# Coefficient rounded to 4 decimals, followed by its significance stars
+def with_stars(results):
+    cells = {}
+    for name in results.params.index:
+        coef = results.params[name]
+        p = results.pvalues[name]
+        if p < 0.01:
+            stars = '***'
+        elif p < 0.05:
+            stars = '**'
+        elif p < 0.10:
+            stars = '*'
+        else:
+            stars = ''
+        cells[name] = f'{coef:.4f}{stars}'
+    return pd.Series(cells)
+
+coefficients = pd.DataFrame({'Pooled OLS': with_stars(pooled_results),
+                             'Between': with_stars(be_results),
+                             'Fixed Effects': with_stars(fe_results),
+                             'Random Effects': with_stars(re_results)})
+order = ['Intercept', 'ldist', 'ldistsq', 'lpassen', 'bmktshr']
+coefficients = coefficients.loc[order].fillna('—')
+print(coefficients)
 ```
 
-               Pooled OLS  Between  Fixed Effects  Random Effects
-    Intercept      7.0392   6.9388         6.9592          8.5440
-    bmktshr        0.3028   0.3346         0.0647          0.0999
-    ldist         -0.9683  -0.9681            NaN         -1.0638
-    ldistsq        0.1065   0.1069            NaN          0.1095
-    lpassen       -0.0773  -0.0676        -0.3163         -0.2236
+               Pooled OLS     Between Fixed Effects Random Effects
+    Intercept   7.0392***   6.9388***     6.9592***      8.5440***
+    ldist      -0.9683***  -0.9681***             —     -1.0638***
+    ldistsq     0.1065***   0.1069***             —      0.1095***
+    lpassen    -0.0773***  -0.0676***    -0.3163***     -0.2236***
+    bmktshr     0.3028***   0.3346***      0.0647**      0.0999***
+
+> [!note]
+> `***`, `**` and `*` mean that the coefficient is significant at the
+> 1%, 5% and 10% levels. No star means it is not significant even at
+> the 10% level.
 
 > [!important]
 > What the comparison tells us:

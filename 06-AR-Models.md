@@ -136,11 +136,27 @@ plt.show()
 After determining the order, we can estimate the AR model using the
 AutoReg function from statsmodels.
 
+Let $r_t$ be GE’s monthly return in month $t$ (the column `GE_diff`). An
+AR($p$) model explains this month’s return with the returns of the
+previous $p$ months:
+
+$$
+r_t = c + \phi_1 r_{t-1} + \phi_2 r_{t-2} + \cdots + \phi_p r_{t-p} + \varepsilon_t
+$$
+
+where $c$ is the constant, $\phi_1, \dots, \phi_p$ are the AR
+coefficients and $\varepsilon_t$ is the error term.
+
 > [!note]
 > Based on the previous PACF, it seems like lags 4, 7, and maybe 8, are
 > significant.
 
-Let’s first add all lags up to the 8th to test for significance:
+Let’s first add all lags up to the 8th to test for significance, an
+AR(8) model:
+
+$$
+r_t = c + \phi_1 r_{t-1} + \phi_2 r_{t-2} + \cdots + \phi_8 r_{t-8} + \varepsilon_t
+$$
 
 ``` python
 model = AutoReg(df['GE_diff'], lags=8)
@@ -188,7 +204,11 @@ print(model_fitted.summary())
 At the 5% level, lags 4, 7 and 8 are significant (p-values 0.005, 0.004
 and 0.047). At the 10% level, lag 1 is significant as well (p-value
 0.068). Let’s estimate again with only the lags that are significant at
-5%:
+5%. With `lags=[4, 7, 8]`, `AutoReg` includes only those lags:
+
+$$
+r_t = c + \phi_4 r_{t-4} + \phi_7 r_{t-7} + \phi_8 r_{t-8} + \varepsilon_t
+$$
 
 ``` python
 model = AutoReg(df['GE_diff'], lags=[4, 7, 8])
@@ -234,6 +254,12 @@ print(model_fitted.summary())
 > other lags are removed, so drop lags step by step and estimate again
 > each time.
 
+The final model has only lags 4 and 7:
+
+$$
+r_t = c + \phi_4 r_{t-4} + \phi_7 r_{t-7} + \varepsilon_t
+$$
+
 ``` python
 model = AutoReg(df['GE_diff'], lags=[4, 7])
 model_fitted = model.fit()
@@ -272,6 +298,19 @@ print(model_fitted.summary())
 > [!tip]
 > **Your turn:** analyze the results using the p-values of the
 > significance tests and decide which lags are significant.
+
+With the estimated coefficients, the model is:
+
+$$
+\hat r_t = -0.1099 + 0.2263 \, r_{t-4} - 0.2038 \, r_{t-7}
+$$
+
+> [!note]
+> A return 1 percentage point higher four months ago goes with a return
+> 0.23 percentage points higher this month, keeping the return of seven
+> months ago constant. A return 1 percentage point higher seven months
+> ago goes with a return 0.20 percentage points lower this month. The
+> constant is not significant (p-value 0.834).
 
 Let’s analyze the residuals from this last estimation:
 
